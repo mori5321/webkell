@@ -52,11 +52,6 @@ sayHello socket =
 data Message startLine =
     Message startLine [HeaderField] (Maybe MessageBody)
 
--- ボツ
--- type Request = Message RequestLine
--- type Response = Message StatusLine
--- type RequestOrResponse = Message (Either RequestLine StatusLine)
-
 data Request = Request RequestLine [HeaderField] (Maybe MessageBody)
 
 data Response = Response StatusLine [HeaderField] (Maybe MessageBody)
@@ -86,13 +81,6 @@ data HttpVersion = HttpVersion Digit Digit
 -- we can improve I think.
 data Digit =
     D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9
-
-
-
--- ? builder ってなに?
--- ? 文字コード周り理解してえ
--- ? TypeApplication
--- ? forall ってなに
 
 encodeResponse :: Response -> BSB.Builder
 encodeResponse (Response statusLine headerFields bodyMaybe) =
@@ -152,7 +140,3 @@ encodeHeaderField
 
 encodeMessageBody :: MessageBody -> BSB.Builder
 encodeMessageBody (MessageBody x) = BSB.lazyByteString x
-
-
--- DONE: Lesson4
--- Next: Lesson5 https://typeclasses.com/web-servers/lesson-5
