@@ -1,9 +1,10 @@
 {-# LANGUAGE TypeApplications #-}
-
 module Webkell.Server where
+
 
 -- base
 import qualified Data.List as List
+import           Numeric   (showInt)
 
 -- bytestring
 import qualified Data.ByteString            as BS
@@ -17,7 +18,6 @@ import           Network.Socket                 ( Socket )
 import qualified Network.Socket.ByteString      as Socket
 import qualified Network.Socket.ByteString.Lazy as LSocket
 
-
 -- network-simple
 import qualified Network.Simple.TCP as NS
 
@@ -28,7 +28,7 @@ port = "8000"
 server :: (Socket -> IO ()) -> IO a
 server f = do
     putStrLn $ "Launching Server on localhost:" <> port
-    NS.serve NS.HostAny port  $ \(socket, _socketAddress) ->
+    NS.serve NS.HostAny port $ \(socket, _socketAddress) ->
         f socket
 
 helloResponse_byteString :: BS.ByteString
@@ -140,3 +140,62 @@ encodeHeaderField
 
 encodeMessageBody :: MessageBody -> BSB.Builder
 encodeMessageBody (MessageBody x) = BSB.lazyByteString x
+
+
+
+staticResponseServer :: Response -> IO ()
+staticResponseServer response =
+    server $ \socket ->
+        LSocket.sendAll socket
+            $ BSB.toLazyByteString $ encodeResponse response
+
+helloResponse_withMoreTypes :: Response
+helloResponse_withMoreTypes =
+    response
+  where
+    response = Response statusLine headerFields Nothing
+    statusLine = StatusLine httpVersion statusCode reasonPhrase
+    httpVersion = HttpVersion D1 D1
+    statusCode = StatusCode D2 D0 D0
+    reasonPhrase = ReasonPhrase $ ASCII.pack "OK"
+    headerFields = [contentTypeHeader]
+    contentTypeHeader = HeaderField (FieldName $ ASCII.pack "Content-Type") (FieldValue $ ASCII.pack "application/json")
+
+http_1_1 :: HttpVersion
+http_1_1 = HttpVersion D1 D1
+
+status200 :: StatusCode
+status200 = StatusCode D2 D0 D0
+
+reasonOK :: ReasonPhrase
+reasonOK = ReasonPhrase (ASCII.pack "OK")
+
+contentTypeHeader :: String -> HeaderField
+contentTypeHeader contentType =
+    HeaderField
+        (FieldName $ ASCII.pack "Content-Type")
+        (FieldValue $ ASCII.pack contentType)
+
+plainTextAsciiHeader :: HeaderField
+plainTextAsciiHeader =
+    contentTypeHeader "text/plain; charset=us-ascii"
+
+contentLengthHeader :: Integral a => a -> HeaderField
+contentLengthHeader contentLength =
+    HeaderField
+        (FieldName $ ASCII.pack "Content-Length")
+        (FieldValue $ ASCII.pack $ showInt contentLength "")
+
+asciiMessageBody :: String -> MessageBody
+asciiMessageBody x = MessageBody $ LASCII.pack x
+
+
+helloResponse_moreConveniently :: Response
+helloResponse_moreConveniently =
+    response
+  where
+    response = Response statusLine headerFields mBody
+    statusLine = StatusLine http_1_1 status200 reasonOK
+    headerFields = [contentLengthHeader $ length bodyMsg, plainTextAsciiHeader]
+    mBody = Just $ asciiMessageBody bodyMsg
+    bodyMsg = "Hello\n"
