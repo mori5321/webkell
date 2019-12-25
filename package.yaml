@@ -24,6 +24,11 @@ dependencies:
 - bytestring
 - network
 - network-simple >= 0.4.2
+- contravariant
+- attoparsec
+- text
+- utf8-string
+- pretty-show
 
 library:
   source-dirs: src
